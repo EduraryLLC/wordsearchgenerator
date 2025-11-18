@@ -1,0 +1,813 @@
+<html>
+<head>
+<title>Word Search Generator (Themed & Classroom)</title>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/* --- BASE & UTILITY STYLES --- */
+body {
+    font-family: 'Lato', sans-serif;
+    background: #f7f9fa; 
+    margin: 0;
+    padding: 20px;
+    color: #333;
+    /* Custom properties for theme colors */
+    --theme-primary-color: #0070c7;
+    --theme-secondary-color: #0070c7;
+    --highlight-color: #ffcc00;
+    --app-background: #fff; /* Default background */
+}
+
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: var(--app-background);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    min-height: 80vh;
+    border: 3px solid var(--theme-primary-color);
+}
+
+/* --- CONTROLS SIDEBAR --- */
+.controls-sidebar {
+    flex: 0 0 250px;
+    padding: 20px;
+    border-right: 1px solid #eee;
+    background: #fcfcfc;
+    /* Ensure text in sidebar is readable regardless of main theme */
+    color: #333; 
+}
+
+.controls-sidebar h2 {
+    color: var(--theme-primary-color); 
+    font-size: 20px;
+    font-weight: 700;
+    margin-top: 0;
+    border-bottom: 2px solid var(--theme-primary-color);
+    padding-bottom: 5px;
+    margin-bottom: 20px;
+}
+
+.control-group { margin-bottom: 15px; }
+.control-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: inherit;
+}
+
+select, textarea, input[type="color"], input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+input[type="color"] { height: 40px; padding: 2px; }
+textarea { height: 70px; resize: vertical; }
+
+.btn-generate {
+    background-color: var(--theme-secondary-color);
+    color: white;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+    transition: background-color 0.2s;
+}
+
+/* --- MAIN CONTENT & GRID --- */
+.main-content { flex-grow: 1; padding: 30px; }
+.puzzle-header { text-align: center; margin-bottom: 15px; }
+.puzzle-header h1 { color: var(--theme-primary-color); font-weight: 900; margin: 0; }
+.puzzle-layout { display: flex; gap: 40px; justify-content: center; }
+.puzzle-container { flex: 1; display: flex; justify-content: center; align-items: flex-start; }
+
+#puzzleBoard {
+    user-select: none; touch-action: none; display: inline-block;
+    border: 3px solid var(--theme-primary-color); /* Main board border uses theme color */
+    border-radius: 4px;
+}
+
+#puzzleBoard table { border-collapse: collapse; }
+#puzzleBoard td {
+    width: 30px; height: 30px; text-align: center; vertical-align: middle;
+    font-size: 15px; font-weight: 700; border: 1px solid #ddd; cursor: pointer;
+    color: #333; /* Default text color */
+}
+
+/* --- CLASSROOM HEADER (Screen & Print) --- */
+.classroom-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 600px; 
+    margin-left: auto;
+    margin-right: auto;
+}
+.classroom-header .field {
+    flex-basis: 30%;
+    border-bottom: 1px solid #ccc;
+    text-align: left;
+    padding: 2px 0;
+}
+.classroom-header .field span { font-weight: 700; color: #555; margin-right: 5px; }
+
+
+/* --- THEME COLORS & HIGHLIGHTING --- */
+#puzzleBoard td.highlight { background: var(--highlight-color); color: #333; }
+#puzzleBoard td.found-word { background: var(--highlight-color); color: white; border-color: var(--highlight-color); }
+
+/* --- GRID STYLES --- */
+#puzzleBoard.style-classic td { border-radius: 0; border-color: var(--theme-secondary-color); } 
+#puzzleBoard.style-bubble td.highlight,
+#puzzleBoard.style-bubble td.found-word { border-radius: 50%; }
+#puzzleBoard.style-hollow td { border: 1px solid var(--theme-secondary-color); }
+
+
+/* --- WORD LIST & UTILITIES --- */
+.word-list-area { flex: 0 0 250px; }
+.word-list-area h2 { color: var(--theme-primary-color); font-size: 18px; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 0; }
+#wordBankList { list-style: none; padding: 0; column-count: 2; column-gap: 15px; font-size: 15px; }
+#wordBankList li.found { text-decoration: line-through; color: var(--theme-primary-color); font-weight: 700; }
+
+.utility-buttons { margin-top: 20px; }
+.utility-buttons button { width: 100%; margin-bottom: 5px; padding: 10px; background: #eee; border: 1px solid #ccc; cursor: pointer; border-radius: 4px;}
+
+/* --- ANSWER KEY DISPLAY --- */
+#answerKeyGrid { 
+    margin-top: 15px; 
+    display: none; 
+    border: 1px solid var(--theme-primary-color);
+    padding: 10px;
+    border-radius: 4px;
+}
+#answerKeyGrid table { margin: auto; border-collapse: collapse; }
+#answerKeyGrid td { width: 15px; height: 15px; font-size: 10px; text-align: center; border: 1px solid #eee; }
+#answerKeyGrid td.found-cell { background: var(--theme-primary-color); color: white; }
+
+/* --- EDURARY Credit (Screen & Print) --- */
+.edurary-credit { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 12px; text-align: center; color: #888; }
+.edurary-credit-print { 
+    display: none; 
+    margin-top: 20px; 
+    font-size: 10px; 
+    text-align: center; 
+    color: var(--theme-primary-color); 
+}
+
+
+/* --- SEASONAL VISUAL THEMES (Color variables adjusted) --- */
+body.vtheme-fall { --theme-primary-color: #a0522d; --theme-secondary-color: #cc6600; --app-background: #fff8e1; }
+body.vtheme-winter { --theme-primary-color: #c00; --theme-secondary-color: #008000; --app-background: #f0f8ff; }
+
+/* 🎃 HALLOWEEN FIX: Changed from dark theme to Purple/Green contrast theme */
+body.vtheme-halloween { 
+    --theme-primary-color: #8b008b; /* Dark Purple */
+    --theme-secondary-color: #008000; /* Dark Green */
+    --app-background: #f0fff0; /* Light Mint/Honeydew background */
+}
+/* Controls should stay light, but headers should use the new theme color */
+body.vtheme-halloween .controls-sidebar { 
+    background: #fcfcfc; 
+    color: #333; 
+} 
+body.vtheme-halloween .edurary-credit { color: #888; border-top-color: #ddd; }
+body.vtheme-halloween .main-content { color: #333; } /* Ensure main content text is dark */
+body.vtheme-halloween #wordBankList li { color: #333; } /* Ensure list items are dark */
+body.vtheme-halloween #puzzleBoard td { 
+    color: #000; /* Ensure grid letters are black for max contrast */
+    border-color: #aaa; /* Lighter border color for contrast */
+}
+
+
+body.vtheme-spring { --theme-primary-color: #4CAF50; --theme-secondary-color: #03A9F4; --app-background: #f1f8e9; }
+body.vtheme-summer { --theme-primary-color: #FFC107; --theme-secondary-color: #F44336; color: #333; --app-background: #fffde7; }
+body.vtheme-school { --theme-primary-color: #795548; --theme-secondary-color: #455A64; --app-background: #f5f5f5; }
+
+
+/* --- PRINT STYLES (Theme colors allowed) --- */
+@media print {
+    body { 
+        background: none !important; 
+        padding: 0 !important; 
+        font-size: 12pt; 
+        color: #000 !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    .controls-sidebar, .utility-buttons, .edurary-credit { display: none !important; }
+    
+    .app-container { 
+        box-shadow: none !important; 
+        border: 3px solid var(--theme-primary-color) !important; 
+        display: block !important; margin: 0 !important; 
+        background: var(--app-background) !important; 
+        width: 100% !important; max-width: 100% !important;
+    }
+    .main-content { padding: 0.5in 0.5in 0 0.5in !important; }
+    .puzzle-layout { display: block !important; }
+
+    .classroom-header { 
+        margin-bottom: 25px !important;
+        max-width: 100%;
+    }
+    .classroom-header .field { border-bottom: 1px solid #000 !important; padding: 0 5px; }
+    .classroom-header .field span { color: #000 !important; font-weight: normal; }
+    
+    #puzzleBoard { border: 2px solid var(--theme-primary-color) !important; } 
+    #puzzleBoard table { border-collapse: collapse; }
+    #puzzleBoard td { 
+        width: 0.3in !important; height: 0.3in !important; 
+        font-size: 14pt !important; 
+        border: 1px solid var(--theme-secondary-color) !important; 
+        background: none !important; 
+        color: #000 !important; 
+        border-radius: 0 !important;
+    }
+    
+    .word-list-area { margin-top: 20px; }
+    #wordBankList { column-count: 3; }
+    #wordBankList li { color: #000 !important; } 
+    #wordBankList li.found { color: #000 !important; } 
+
+    #answerKeyGrid { 
+        margin-top: 30px; 
+        border: 1px solid var(--theme-primary-color) !important;
+        padding: 10px;
+        page-break-before: always;
+    }
+    #answerKeyGrid table { margin: auto; border-collapse: collapse; }
+    #answerKeyGrid td { border: 1px solid var(--theme-secondary-color) !important; }
+    #answerKeyGrid td.found-cell { background: #ffe0e0 !important; color: #000 !important; }
+
+
+    .edurary-credit-print { display: block !important; color: var(--theme-primary-color) !important; }
+}
+</style>
+</head>
+
+<body class="vtheme-default">
+
+<div class="app-container" id="appContainer">
+
+    <div class="controls-sidebar">
+        <h2>Puzzle Settings</h2>
+
+        <div class="control-group">
+            <label for="customTitle">Puzzle Title:</label>
+            <input type="text" id="customTitle" placeholder="Word Search Worksheet">
+        </div>
+
+        <div class="control-group">
+            <label for="visualTheme">Visual Theme:</label>
+            <select id="visualTheme">
+                <option value="default" selected>Default Blue</option>
+                <option value="spring">Spring 🌷</option>
+                <option value="summer">Summer ☀️</option>
+                <option value="fall">Fall/Thanksgiving 🍂</option>
+                <option value="winter">Winter/Christmas 🎄</option>
+                <option value="halloween">Halloween 🎃</option>
+                <option value="school">Back-to-School ✏️</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="displayTheme">Grid Style:</label>
+            <select id="displayTheme">
+                <option value="classic">Classic Squares</option>
+                <option value="bubble">Bubble Circles</option>
+                <option value="hollow">Hollow Grid</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="highlightColor">Highlight Color:</label>
+            <input type="color" id="highlightColor" value="#ffcc00">
+        </div>
+        
+        <div class="control-group">
+            <label for="wordCategory">Choose Category:</label>
+            <select id="wordCategory">
+                <option value="custom" selected>Custom Words</option>
+                <option value="animals">Animals 🦁</option>
+                <option value="christmas">Christmas 🎄</option>
+                <option value="thanksgiving">Thanksgiving 🦃</option>
+                <option value="halloween">Halloween 🎃</option>
+                <option value="planets">Planets 🪐</option>
+                <option value="sports">Sports 🏈</option>
+                <option value="countries">Countries 🌎</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label for="wordsInput">Enter Words (Max 20, comma-separated):</label>
+            <textarea id="wordsInput" placeholder="apple, banana, orange, kiwi, grape"></textarea>
+        </div>
+
+        <div class="control-group">
+            <label for="gridSize">Grid Size:</label>
+            <select id="gridSize">
+                <option value="10">10 x 10</option>
+                <option value="15" selected>15 x 15</option>
+                <option value="20">20 x 20</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="difficulty">Difficulty/Directions:</label>
+            <select id="difficulty">
+                <option value="100">Easy (Horizontal/Vertical only)</option>
+                <option value="500" selected>Standard (All 8 directions)</option>
+            </select>
+        </div>
+        
+        <button id="generateBtn" class="btn-generate">Generate New Puzzle</button>
+        
+        <div class="edurary-credit">
+            Powered by **EDURARY**
+        </div>
+
+    </div>
+
+    <div class="main-content">
+        
+        <div class="classroom-header">
+            <div class="field"><span>Name:</span></div>
+            <div class="field"><span>Date:</span></div>
+            <div class="field"><span>Class:</span></div>
+        </div>
+
+        <div class="puzzle-header">
+            <h1 id="puzzleTitle">Word Search Worksheet</h1>
+            <p>Find all the words hidden in the grid!</p>
+        </div>
+        
+        <div class="puzzle-layout">
+
+            <div class="puzzle-container">
+                <div id="puzzleBoard" class="style-classic"></div>
+            </div>
+
+            <div class="word-list-area">
+                <h2>Word Bank</h2>
+                <ul id="wordBankList"></ul>
+
+                <div class="utility-buttons">
+                    <button id="answerKeyBtn">Show Solution (Screen)</button>
+                    
+                    <div style="margin-top: 10px; display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="printAnswerKey" style="width: auto;">
+                        <label for="printAnswerKey" style="font-weight: normal; margin-bottom: 0;">Include Answer Key in Print</label>
+                    </div>
+
+                    <button onclick="printPuzzle()">Print/Download PDF</button>
+                </div>
+
+                <div id="answerKeyGrid">
+                    </div>
+            </div>
+        </div>
+        
+        <div id="printCredit" class="edurary-credit-print">
+             -- Powered by EDURARY --
+        </div>
+
+    </div>
+</div>
+
+<script>
+// --- WORD CATEGORY DATA ---
+const WORD_BANK = {
+    custom: { 
+        words: "", defaultTitle: "Custom Word Search", count: 0 
+    },
+    animals: { 
+        words: "LION,TIGER,BEAR,WOLF,EAGLE,SHARK,DOLPHIN,GIRAFFE,ELEPHANT,MONKEY,RABBIT,FOX,ZEBRA,PANDA,KOALA,SNAKE,FROG,COW,PIG,SHEEP,GOAT,HORSE,DUCK,CAT,DOG", 
+        defaultTitle: "Animal Kingdom Puzzle", count: 12
+    },
+    christmas: { 
+        words: "SANTA,REINDEER,SNOWMAN,GIFT,SLEIGH,BELLS,CANDY,MERRY,CAROL,WREATH,LIGHTS,ORNAMENT,CHIMNEY,STOCKING,ELF,GINGERBREAD,HOLLY,FROSTY,NATIVITY,DECEMBER,JOY", 
+        defaultTitle: "Christmas Holiday Fun", count: 10
+    },
+    thanksgiving: { 
+        words: "TURKEY,GRAVY,PILGRIM,FEAST,HARVEST,PUMPKIN,BLESSING,FAMILY,AUTUMN,CORN,MAIZE,MAYFLOWER,COLONY,POTATOES,PIE,THANKFUL,CRANBERRY,FRIENDS", 
+        defaultTitle: "Thanksgiving Day Puzzle", count: 10
+    },
+    halloween: { 
+        words: "GHOST,PUMPKIN,WITCH,SPIDER,CANDY,SPOOKY,HAUNTED,COSTUME,BAT,SCARED,VAMPIRE,MUMMY,ZOMBIE,BOO,CEMETERY,MOON,BLACKCAT,COBWEB", 
+        defaultTitle: "Halloween Spooktacular", count: 10
+    },
+    planets: { 
+        words: "MERCURY,VENUS,EARTH,MARS,JUPITER,SATURN,URANUS,NEPTUNE,ASTEROID,COMET,UNIVERSE,GALAXY,ORBIT,SUN,MOON,STARS", 
+        defaultTitle: "Planets of the Solar System", count: 8
+    },
+    sports: { 
+        words: "FOOTBALL,BASKETBALL,SOCCER,TENNIS,GOLF,HOCKEY,VOLLEYBALL,BASEBALL,RUGBY,SWIMMING,RUNNING,CYCLING,BOXING,WRESTLING,SKIING,FENCING,JUMPING", 
+        defaultTitle: "Sports Puzzle", count: 12
+    },
+    countries: { 
+        words: "CANADA,MEXICO,BRAZIL,JAPAN,INDIA,GERMANY,FRANCE,CHINA,EGYPT,RUSSIA,CHILE,ITALY,SPAIN,AUSTRALIA,KOREA,VIETNAM,KENYA,PERU,GREECE", 
+        defaultTitle: "World Countries Puzzle", count: 12
+    }
+};
+
+// --- GLOBAL VARIABLES ---
+let GRID_SIZE = 15;
+let ATTEMPTS_LIMIT = 500;
+let grid = [];
+let wordPositions = []; 
+let isMouseDown = false;
+let dragStartCell = null;
+let dragEndCell = null;
+let foundWords = new Set();
+const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+// --- GENERATION AND SETUP ---
+
+function getSettings() {
+    GRID_SIZE = parseInt(document.getElementById("gridSize").value);
+    ATTEMPTS_LIMIT = parseInt(document.getElementById("difficulty").value);
+}
+
+function selectRandomWords(category) {
+    const wordData = WORD_BANK[category];
+    if (category === "custom") {
+        return document.getElementById("wordsInput").value.split(",").map(w => w.trim().toUpperCase()).filter(w => w.length && w.length <= GRID_SIZE);
+    }
+    
+    const allWords = wordData.words.split(',').map(w => w.trim().toUpperCase());
+    const count = Math.min(wordData.count, allWords.length); 
+    
+    // Simple shuffle and slice logic
+    for (let i = allWords.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allWords[i], allWords[j]] = [allWords[j], allWords[i]];
+    }
+    
+    return allWords.slice(0, count);
+}
+
+
+function setupGeneration() {
+    getSettings(); 
+
+    const category = document.getElementById("wordCategory").value;
+    const words = selectRandomWords(category);
+
+    if (!words.length) {
+        document.getElementById("puzzleBoard").innerHTML = "<table><tr><td>E</td><td>R</td><td>R</td><td>O</td><td>R</td></tr><tr><td>N</td><td>O</td><td>W</td><td>O</td><td>R</td></tr><tr><td>D</td><td>S</td><td>E</td><td>N</td><td>T</td></tr></table>";
+        document.getElementById("wordBankList").innerHTML = "<li>No words provided.</li>";
+        return;
+    }
+    
+    // 1. Apply all visual settings (Visual, Color, Grid Style)
+    applyVisualTheme();
+    applyColor();
+    applyGridTheme();
+
+    // 2. Set Custom Title
+    const customTitleInput = document.getElementById("customTitle").value.trim();
+    const categoryTitle = WORD_BANK[category] ? WORD_BANK[category].defaultTitle : "Word Search Worksheet";
+    document.getElementById("puzzleTitle").textContent = customTitleInput || categoryTitle;
+
+
+    // 3. Reset State and Generate
+    grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(""));
+    wordPositions = [];
+    foundWords.clear();
+    
+    // Hide solution when generating a new puzzle
+    document.getElementById("answerKeyGrid").style.display = 'none';
+    document.getElementById("answerKeyBtn").textContent = 'Show Solution (Screen)';
+
+    generateGrid(words);
+    renderGrid();
+    renderWordBank(words);
+    renderAnswerKey();
+    enableGameMode();
+}
+
+function applyVisualTheme() {
+    const theme = document.getElementById("visualTheme").value;
+    document.body.className = `vtheme-${theme}`;
+}
+
+function applyColor() {
+    const color = document.getElementById("highlightColor").value;
+    document.getElementById("puzzleBoard").style.setProperty('--highlight-color', color);
+}
+
+function applyGridTheme() {
+    const theme = document.getElementById("displayTheme").value;
+    const board = document.getElementById("puzzleBoard");
+    board.className = `style-${theme}`; 
+}
+
+function generateGrid(words) {
+    const dirsAll = [
+        [0, 1], [1, 0], [1, 1], [-1, 1], 
+        [0, -1], [-1, 0], [-1, -1], [1, -1]
+    ];
+    const dirsEasy = [[0, 1], [1, 0], [0, -1], [-1, 0]]; 
+    const directions = (ATTEMPTS_LIMIT === 100) ? dirsEasy : dirsAll;
+
+    words.forEach(word => {
+        for (let attempts = 0; attempts < 500; attempts++) {
+            let r = Math.floor(Math.random() * GRID_SIZE);
+            let c = Math.floor(Math.random() * GRID_SIZE);
+            let d = directions[Math.floor(Math.random() * directions.length)];
+
+            if (canPlaceWord(word, r, c, d)) {
+                let coords = [];
+                for (let i = 0; i < word.length; i++) {
+                    let rr = r + i * d[0];
+                    let cc = c + i * d[1];
+                    grid[rr][cc] = word[i];
+                    coords.push([rr, cc]);
+                }
+                wordPositions.push({ word, coords });
+                return;
+            }
+        }
+    });
+    
+    for (let r = 0; r < GRID_SIZE; r++)
+        for (let c = 0; c < GRID_SIZE; c++)
+            if (!grid[r][c]) grid[r][c] = letters[Math.floor(Math.random() * letters.length)];
+}
+
+function canPlaceWord(word, r, c, d) {
+    for (let i = 0; i < word.length; i++) {
+        let rr = r + i * d[0];
+        let cc = c + i * d[1];
+        if (rr < 0 || cc < 0 || rr >= GRID_SIZE || cc >= GRID_SIZE) return false;
+        if (grid[rr][cc] !== "" && grid[rr][cc] !== word[i]) return false;
+    }
+    return true;
+}
+
+function renderGrid() {
+    let html = "<table>";
+    const cellSize = Math.max(20, 450 / GRID_SIZE); 
+    
+    for (let r = 0; r < GRID_SIZE; r++) {
+        html += "<tr>";
+        for (let c = 0; c < GRID_SIZE; c++)
+            html += `<td data-r="${r}" data-c="${c}" style="width:${cellSize}px; height:${cellSize}px; font-size:${cellSize*0.6}px;">${grid[r][c]}</td>`;
+        html += "</tr>";
+    }
+    html += "</table>";
+    document.getElementById("puzzleBoard").innerHTML = html;
+}
+
+function renderWordBank(words) {
+    const ul = document.getElementById("wordBankList");
+    ul.innerHTML = "";
+    words.forEach(w => ul.innerHTML += `<li id="word-${w}">${w}</li>`);
+}
+
+function renderAnswerKey() {
+    let keyHtml = "<table>";
+    let keyGrid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(false));
+
+    wordPositions.forEach(entry => {
+        entry.coords.forEach(([r, c]) => {
+            keyGrid[r][c] = true;
+        });
+    });
+
+    for (let r = 0; r < GRID_SIZE; r++) {
+        keyHtml += "<tr>";
+        for (let c = 0; c < GRID_SIZE; c++) {
+            const class_ = keyGrid[r][c] ? 'found-cell' : '';
+            keyHtml += `<td class="${class_}">${grid[r][c]}</td>`;
+        }
+        keyHtml += "</tr>";
+    }
+    keyHtml += "</table>";
+    document.getElementById("answerKeyGrid").innerHTML = `<p style="text-align: center; font-weight: bold; margin-bottom: 5px;">ANSWER KEY</p>` + keyHtml;
+}
+
+function toggleAnswerKey() {
+    const keyDiv = document.getElementById("answerKeyGrid");
+    const btn = document.getElementById("answerKeyBtn");
+    const isVisible = keyDiv.style.display === 'block';
+
+    keyDiv.style.display = isVisible ? 'none' : 'block';
+    btn.textContent = isVisible ? 'Show Solution (Screen)' : 'Hide Solution (Screen)';
+}
+
+function handleCategoryChange() {
+    const category = document.getElementById("wordCategory").value;
+    const wordsInput = document.getElementById("wordsInput");
+    
+    if (category === "custom") {
+        wordsInput.disabled = false;
+        wordsInput.placeholder = "Enter your own words...";
+    } else {
+        wordsInput.disabled = true;
+    }
+    setupGeneration(); 
+}
+
+function printPuzzle() {
+    const answerKeyDiv = document.getElementById("answerKeyGrid");
+    const printKeyCheckbox = document.getElementById("printAnswerKey");
+    const screenIsVisible = answerKeyDiv.style.display === 'block';
+
+    if (printKeyCheckbox.checked) {
+        answerKeyDiv.style.setProperty('display', 'block', 'important');
+    }
+
+    window.print();
+
+    answerKeyDiv.style.removeProperty('display');
+    
+    if (!screenIsVisible) {
+        answerKeyDiv.style.display = 'none';
+    } else {
+        answerKeyDiv.style.display = 'block';
+    }
+}
+
+
+// --- DRAG LOGIC (Unchanged) ---
+
+function enableGameMode() {
+    const board = document.getElementById("puzzleBoard");
+
+    board.onmousedown = null;
+    board.onmouseover = null;
+    board.onmouseup = null;
+    document.body.onmouseup = null;
+
+    board.onmousedown = e => {
+        if (e.target.tagName !== "TD") return;
+        isMouseDown = true;
+        dragStartCell = e.target;
+        dragEndCell = e.target;
+        clearHighlights(true);
+        e.target.classList.add("highlight");
+    };
+
+    board.onmouseover = e => {
+        if (!isMouseDown || e.target.tagName !== "TD") return;
+        
+        dragEndCell = e.target;
+        
+        if (isStraight(dragStartCell, dragEndCell)) {
+            highlightPath(dragStartCell, dragEndCell);
+        }
+    };
+
+    const finalizeDrag = () => {
+        if (isMouseDown) { 
+            isMouseDown = false;
+            checkMatch(dragStartCell, dragEndCell);
+            dragStartCell = null;
+            dragEndCell = null;
+        }
+    };
+
+    board.onmouseup = finalizeDrag;
+    document.body.onmouseup = finalizeDrag;
+}
+
+function isStraight(startCell, endCell) {
+    const r0 = parseInt(startCell.dataset.r);
+    const c0 = parseInt(startCell.dataset.c);
+    const rN = parseInt(endCell.dataset.r);
+    const cN = parseInt(endCell.dataset.c);
+
+    const vectorR = rN - r0;
+    const vectorC = cN - c0;
+    
+    const isHorizontal = vectorR === 0;
+    const isVertical = vectorC === 0;
+    const isDiagonal = Math.abs(vectorR) === Math.abs(vectorC);
+
+    return isHorizontal || isVertical || isDiagonal;
+}
+
+function highlightPath(startCell, endCell) {
+    const r0 = parseInt(startCell.dataset.r);
+    const c0 = parseInt(startCell.dataset.c);
+    const rN = parseInt(endCell.dataset.r);
+    const cN = parseInt(endCell.dataset.c);
+
+    const vectorR = rN - r0;
+    const vectorC = cN - c0;
+    const pathLength = Math.max(Math.abs(vectorR), Math.abs(vectorC));
+
+    if (pathLength < 1) return;
+    
+    const stepR = vectorR / pathLength;
+    const stepC = vectorC / pathLength;
+
+    clearHighlights(true); 
+
+    for (let i = 0; i <= pathLength; i++) {
+        const currentR = r0 + i * stepR;
+        const currentC = c0 + i * stepC;
+        const cell = document.querySelector(`#puzzleBoard td[data-r="${currentR}"][data-c="${currentC}"]`);
+        if (cell) {
+            cell.classList.add("highlight");
+        }
+    }
+}
+
+function clearHighlights(tempOnly = false) {
+    document.querySelectorAll("#puzzleBoard td").forEach(td => {
+        if (tempOnly) {
+            if (!td.classList.contains('found-word')) {
+                td.classList.remove("highlight");
+            }
+        } else {
+            td.classList.remove("highlight", "found-word");
+        }
+    });
+}
+
+function checkMatch(startCell, endCell) {
+    if (!startCell || !endCell || startCell === endCell) {
+        clearHighlights(true);
+        return;
+    }
+    
+    if (!isStraight(startCell, endCell)) {
+        clearHighlights(true);
+        return;
+    }
+
+    const r0 = parseInt(startCell.dataset.r);
+    const c0 = parseInt(startCell.dataset.c);
+    const rN = parseInt(endCell.dataset.r);
+    const cN = parseInt(endCell.dataset.c);
+
+    const vectorR = rN - r0;
+    const vectorC = cN - c0;
+    const pathLength = Math.max(Math.abs(vectorR), Math.abs(vectorC));
+    const stepR = vectorR / pathLength;
+    const stepC = vectorC / pathLength;
+
+    let finalCoords = [];
+    for (let i = 0; i <= pathLength; i++) {
+        finalCoords.push([r0 + i * stepR, c0 + i * stepC]);
+    }
+    
+    const forwardCoordsStr = JSON.stringify(finalCoords);
+    const backwardCoordsStr = JSON.stringify([...finalCoords].reverse());
+
+    let matchFound = false;
+    clearHighlights(true); 
+
+    wordPositions.forEach(entry => {
+        if (foundWords.has(entry.word)) return;
+        
+        const storedCoordsStr = JSON.stringify(entry.coords);
+
+        if (storedCoordsStr === forwardCoordsStr || storedCoordsStr === backwardCoordsStr) {
+            entry.coords.forEach(([r, c]) => {
+                document.querySelector(`#puzzleBoard td[data-r="${r}"][data-c="${c}"]`)
+                  .classList.add("found-word");
+            });
+            
+            document.getElementById("word-" + entry.word).classList.add("found");
+            foundWords.add(entry.word);
+            matchFound = true;
+        }
+    });
+
+    if (!matchFound) {
+        clearHighlights(true);
+    }
+}
+
+
+// --- EVENT LISTENERS ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Core Logic triggers
+    document.getElementById("generateBtn").addEventListener("click", setupGeneration);
+    document.getElementById("answerKeyBtn").addEventListener("click", toggleAnswerKey); 
+
+    // Theme and Input Handlers 
+    document.getElementById("wordCategory").addEventListener("change", handleCategoryChange);
+    document.getElementById("customTitle").addEventListener("input", setupGeneration);
+    document.getElementById("visualTheme").addEventListener("change", setupGeneration); 
+    document.getElementById("highlightColor").addEventListener("change", setupGeneration); 
+    document.getElementById("displayTheme").addEventListener("change", applyGridTheme); 
+    
+    // Initial generation call
+    setupGeneration();
+});
+</script>
+</body>
+</html>
