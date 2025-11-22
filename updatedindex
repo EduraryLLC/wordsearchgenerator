@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EDURARY OFFICIAL WORD SEARCH GENERATOR</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- FIX: Escaped the ampersand in the Google Fonts URL for XML compatibility -->
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&amp;display=swap" rel="stylesheet">
+<style>
+/* --- BASE & UTILITY STYLES --- */
+body {
+    font-family: 'Lato', sans-serif;
+    background: #f7f9fa;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+    /* Custom properties for theme colors */
+    --theme-primary-color: #0070c7;
+    --theme-secondary-color: #0070c7;
+    --highlight-color: #ffcc00;
+    --app-background: #fff;
+    --grid-line-color: #ddd;
+    /* Custom property for print media query */
+    --print-grid-border: 1px solid #000;
+}
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: var(--app-background);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    min-height: 80vh;
+    border: 3px solid var(--theme-primary-color);
+}
+/* --- CLASSROOM HEADER STYLES --- */
+.classroom-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 5px;
+    width: 100%;
+}
+.classroom-header .field {
+    flex: 1;
+    margin-right: 20px;
+    font-size: 14px;
+    font-weight: 700;
+}
+.classroom-header span {
+    /* ADDED: Bold, clear line for writing */
+    display: block;
+    border-bottom: 2px solid #000;
+    padding-right: 50%;
+    margin-top: 5px;
+    padding-bottom: 2px;
+    font-weight: 400;
+}
+.classroom-header .field:last-child {
+    margin-right: 0;
+}
+
+/* --- CONTROLS SIDEBAR --- */
+.controls-sidebar {
+    flex: 0 0 280px;
+    padding: 20px;
+    border-right: 1px solid #eee;
+    background: #fcfcfc;
+    color: #333;
+}
+.controls-sidebar h2 {
+    color: var(--theme-primary-color);
+    font-size: 20px;
+    font-weight: 700;
+    margin-top: 0;
+    border-bottom: 2px solid var(--theme-primary-color);
+    padding-bottom: 5px;
+    margin-bottom: 20px;
+}
+.control-group { margin-bottom: 15px; }
+.control-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: inherit;
+}
+select, textarea, input[type="color"], input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+input[type="color"] { height: 40px; padding: 2px; }
+textarea { height: 70px; resize: vertical; }
+
+.size-inputs { display: flex; gap: 20px; }
+.size-inputs > div { flex: 1; }
+.size-inputs input { width: 100%; }
+.size-inputs label { font-size: 12px; font-weight: normal; margin-bottom: 2px;}
+
+.btn-generate {
+    background-color: var(--theme-secondary-color);
+    color: white;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 15px;
+    transition: background-color 0.2s;
+    border: none;
+}
+.btn-utility {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    color: #333;
+    transition: background-color 0.2s;
+    border-radius: 4px;
+    padding: 10px;
+    width: 100%;
+}
+
+.checkbox-option { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+.checkbox-option input[type="checkbox"] { width: auto; }
+.checkbox-option label { font-weight: normal; margin: 0; }
+
+/* --- WORDS NOT FIT BOX (Sidebar) --- */
+.words-not-fit {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ff4d4d;
+    background: #fff0f0;
+    border-radius: 4px;
+    display: none; 
+}
+.words-not-fit h3 {
+    margin-top: 0;
+    font-size: 14px;
+    color: #ff4d4d;
+    border-bottom: 1px dashed #ff4d4d;
+    padding-bottom: 5px;
+}
+/* New styles for content inside the warning box */
+.words-not-fit h4 {
+    margin: 8px 0 3px 0;
+    font-size: 13px;
+    color: #cc0000;
+}
+.unplaced-list-sidebar {
+    list-style-type: none;
+    padding: 0;
+    margin: 5px 0 5px 5px;
+    max-height: 100px;
+    overflow-y: auto;
+    font-size: 12px;
+}
+.unplaced-list-sidebar li {
+    margin-bottom: 3px;
+    color: #444;
+}
+
+
+/* --- MAIN CONTENT & GRID --- */
+.main-content { 
+    flex-grow: 1; 
+    padding: 30px; 
+    display: flex;
+    flex-direction: column;
+    align-items: center; 
+}
+.puzzle-header { text-align: center; margin-bottom: 15px; width: 100%; }
+.puzzle-header h1 { color: var(--theme-primary-color); font-weight: 900; margin: 0; }
+
+/* Container for Grid and Solution Preview */
+.grid-and-preview-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; 
+    width: 100%;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.puzzle-container {
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    flex-direction: column;
+}
+
+#puzzleBoard {
+    user-select: none; touch-action: none; display: inline-block;
+    border: 3px solid var(--theme-primary-color);
+    border-radius: 4px;
+    margin-top: 10px;
+}
+#puzzleBoard table { border-collapse: collapse; }
+#puzzleBoard td {
+    width: 30px; height: 30px; text-align: center; vertical-align: middle;
+    font-size: 15px; font-weight: 700; border: 1px solid var(--grid-line-color); cursor: pointer;
+    color: #333;
+    transition: background-color 0.1s;
+}
+
+/* FEATURE: GRID LINE REMOVAL */
+#puzzleBoard.no-grid-lines td { border: none !important; }
+#puzzleBoard.no-grid-lines table { border-collapse: separate; border-spacing: 0; }
+
+/* --- THEME COLORS & HIGHLIGHTING --- */
+#puzzleBoard td.highlight { background: var(--highlight-color); color: #333; }
+#puzzleBoard td.found-word { background: var(--highlight-color); color: white; border-color: var(--highlight-color); }
+
+/* --- GRID STYLES (Added bubble) --- */
+#puzzleBoard.style-classic td { border-radius: 0; border-color: var(--grid-line-color); }
+#puzzleBoard.style-bubble td { border-radius: 50%; border-color: var(--grid-line-color); }
+#puzzleBoard.style-bubble td.highlight,
+#puzzleBoard.style-bubble td.found-word { border-radius: 50%; }
+#puzzleBoard.style-hollow td { border: 1px solid var(--grid-line-color); }
+
+/* --- WORD LIST & UTILITIES (BOTTOM LOCATION STYLES) --- */
+.word-list-area { 
+    width: 100%; 
+    max-width: 800px; 
+    padding: 20px;
+    border: 1px solid #eee;
+    background: #fcfcfc;
+    border-radius: 4px;
+}
+.word-list-area h2 { 
+    color: var(--theme-primary-color); 
+    font-size: 18px; 
+    border-bottom: 1px solid #ccc; 
+    padding-bottom: 5px; 
+    margin-top: 0; 
+    text-align: center;
+}
+#wordBankList { 
+    list-style: none; 
+    padding: 0; 
+    column-count: 2; 
+    column-gap: 30px; 
+    font-size: 16px; 
+    width: 100%;
+    margin: 15px auto;
+    text-align: center; 
+}
+#wordBankList li {
+    display: inline-block; 
+    width: 100%;
+    text-align: left;
+    margin-bottom: 5px;
+    cursor: default; /* Ensure list items aren't clickable/interactive */
+}
+#wordBankList li.found { text-decoration: line-through; color: var(--theme-primary-color); font-weight: 700; }
+
+.utility-buttons { 
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+/* IMPORTANT: Uniform button sizing for the main 5 buttons */
+.utility-buttons > button {
+    flex: 1 1 180px; 
+    max-width: 250px;
+}
+/* APPLYING THE SAME SIZING TO THE NESTED BUTTON */
+.utility-buttons .print-options button {
+    flex: 1 1 100%; /* Make it fill the print options container */
+    max-width: none; /* Override max-width to allow full container width */
+}
+/* Re-jigging the print options button to follow the same flex sizing as its siblings */
+.utility-buttons .print-options {
+    flex: 1 1 180px; /* Take up same space as its sibling buttons */
+    max-width: 250px;
+    display: flex; /* Make it a flex container itself */
+    flex-direction: column; /* Stack its contents */
+}
+
+.utility-buttons button { margin-bottom: 5px; }
+
+.print-options {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #ccc;
+    gap: 5px;
+}
+.print-options div {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.print-options input[type="checkbox"] { width: auto; }
+
+
+/* --- ANSWER KEY DISPLAY (Screen) --- */
+#answerKeyGrid {
+    margin-top: 15px;
+    display: none;
+    border: 1px solid var(--theme-primary-color);
+    padding: 10px;
+    border-radius: 4px;
+    text-align: center;
+}
+#answerKeyGrid table { margin: auto; border-collapse: collapse; }
+#answerKeyGrid td { 
+    width: 20px; height: 20px; font-size: 12px; text-align: center; border: 1px solid #eee; 
+    position: relative;
+    background: none !important;
+    color: #000 !important;
+    font-weight: 700;
+}
+
+/* NEW: Styles for the solution outline visual on screen (dashed cell border + inner circle) */
+#answerKeyGrid.show-solution td[style*="border-color"] {
+    border: 1px dashed var(--theme-primary-color);
+}
+#answerKeyGrid .outline-circle {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%; height: 80%;
+    background-color: var(--highlight-color);
+    border-radius: 50%;
+    opacity: 0.7;
+    z-index: 1;
+}
+#answerKeyGrid td { z-index: 2; }
+
+
+/* --- SOLUTION PREVIEW PANEL --- */
+#solutionPreview {
+    display: none; 
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 4px;
+    background: #f9f9f9;
+    align-self: flex-start; 
+}
+#solutionPreview h3 {
+    font-size: 14px;
+    margin: 0 0 5px 0;
+    color: #666;
+    text-align: center;
+}
+#solutionPreview table {
+    margin: auto;
+    border-collapse: collapse;
+    border: 1px solid var(--theme-primary-color);
+}
+#solutionPreview td { 
+    width: 8px; 
+    height: 8px;
+    font-size: 6px;
+    text-align: center; 
+    border: 1px solid #eee; 
+    line-height: 1;
+    padding: 0;
+    position: relative; /* Essential for containing the outline div */
+    background: none !important; /* Force no background fill for outline visual */
+    color: #333 !important; /* Standard text color */
+}
+/* For the small preview, we use a simple background dot */
+#solutionPreview .solution-dot {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px; height: 6px;
+    background-color: var(--theme-primary-color);
+    border-radius: 50%;
+    opacity: 0.9;
+}
+
+
+/* --- SEASONAL VISUAL THEMES --- */
+body.vtheme-default { --theme-primary-color: #0070c7; --theme-secondary-color: #1e90ff; --app-background: #fff; }
+body.vtheme-fall { --theme-primary-color: #a0522d; --theme-secondary-color: #cc6600; --app-background: #fff8e1; }
+body.vtheme-winter { --theme-primary-color: #c00; --theme-secondary-color: #008000; --app-background: #f0f8ff; }
+body.vtheme-halloween {
+    --theme-primary-color: #8B008B; 
+    --theme-secondary-color: #FFA500; 
+    --app-background: #f0fff0;
+}
+body.vtheme-spring { --theme-primary-color: #006400;  --theme-secondary-color: #3CB371; --app-background: #f1f8e9; }
+body.vtheme-summer { --theme-primary-color: #FFC107; --theme-secondary-color: #F44336; color: #333; --app-background: #fffde7; }
+body.vtheme-school { --theme-primary-color: #795548; --theme-secondary-color: #455A64; --app-background: #f5f5f5; }
+
+
+/* --- PRINT STYLES --- */
+@media print {
+    /* Hide on print unless print-include is set */
+    #answerKeyGrid:not(.print-include) { display: none !important; } 
+    #solutionPreview { display: none !important; } 
+    
+    body {
+        background: none !important;
+        padding: 0 !important;
+        font-size: 12pt;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    /* Hide all controls, utility buttons, and specific screen elements */
+    .controls-sidebar, .utility-buttons, .edurary-credit, .game-stats, .words-not-fit { display: none !important; }
+
+    .app-container {
+        box-shadow: none !important;
+        border: 3px solid var(--theme-primary-color) !important;
+        display: block !important; 
+        margin: 0.2in auto !important; 
+        background: var(--app-background) !important;
+        width: 100% !important;
+        max-width: 7.5in !important; 
+        padding: 0.2in !important; 
+        box-sizing: border-box !important;
+    }
+    
+    .main-content { 
+        padding: 0 !important; 
+        width: 100% !important; 
+        box-sizing: border-box !important;
+        max-width: 100% !important;
+        align-items: center !important; 
+    }
+
+    .grid-and-preview-container {
+        display: block !important;
+        margin-bottom: 0.2in !important;
+    }
+    
+    .puzzle-container { 
+        flex: none !important; 
+        align-items: center !important;
+        margin-bottom: 0.2in !important; 
+    }
+    .word-list-area { 
+        width: 95% !important; 
+        max-width: 7in !important;
+        border: none !important;
+        background: none !important;
+        padding: 0 !important;
+    }
+
+    #puzzleBoard { border: 2px solid var(--theme-primary-color) !important; }
+    #puzzleBoard td {
+        border: var(--print-grid-border) !important;
+        background: none !important;
+        color: #000 !important;
+        border-radius: 0 !important;
+    }
+    
+    #wordBankList {
+        /* Use CSS variable to control print column count */
+        column-count: var(--print-col-count, 2) !important; 
+        font-size: 12pt !important;
+        text-align: left !important;
+    }
+    #wordBankList li {
+        text-align: left !important;
+    }
+    .word-list-area h2 {
+        text-align: left !important;
+        border-bottom: 2px solid #000 !important;
+    }
+
+    #answerKeyGrid.print-include {
+        display: block !important; /* Force display only if print-include */
+        page-break-before: always;
+        box-shadow: none !important;
+        border: 2px solid var(--theme-primary-color) !important;
+        padding: 0.2in !important;
+    }
+    /* Re-style for print key */
+    #answerKeyGrid.print-include table {
+        margin: auto;
+        border-collapse: collapse;
+    }
+    #answerKeyGrid.print-include td {
+        width: 20px; height: 20px; font-size: 12px;
+        border: var(--print-grid-border) !important;
+    }
+    #answerKeyGrid.print-include .outline-circle {
+        background-color: var(--highlight-color);
+    }
+
+
+    .edurary-credit-print { 
+        display: block !important; 
+        color: #666 !important; 
+        text-align: center;
+        font-size: 10pt;
+        margin-top: 15px;
+    }
+}
+/* --- STATS DISPLAY STYLING --- */
+.puzzle-stats {
+    margin-top: 15px;
+    padding: 10px;
+    border-top: 1px dashed #ccc;
+    font-size: 14px;
+    font-weight: 700;
+    color: #555;
+    text-align: center;
+}
+.puzzle-stats span {
+    display: inline-block;
+    margin: 0 10px;
+    color: var(--theme-primary-color);
+}
+</style>
+</head>
+
+<body class="vtheme-default">
+
+<div class="app-container" id="appContainer">
+
+    <div class="controls-sidebar">
+        <h2>Puzzle Settings</h2>
+
+        <div class="control-group">
+            <label for="customTitle">Puzzle Title:</label>
+            <input type="text" id="customTitle" placeholder="Word Search Worksheet" oninput="setupGeneration()">
+        </div>
+
+        <div class="control-group">
+            <label for="visualTheme">Visual Theme (Colors Only):</label>
+            <select id="visualTheme" onchange="applyVisualTheme(); setupGeneration()">
+                <option value="default" selected>Default Blue</option>
+                <option value="spring">Spring 🌷</option>
+                <option value="summer">Summer ☀️</option>
+                <option value="fall">Fall/Thanksgiving 🍂</option>
+                <option value="winter">Winter/Christmas 🎄</option>
+                <option value="halloween">Halloween 🎃</option>
+                <option value="school">Back-to-School ✏️</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="displayTheme">Grid Style:</label>
+            <select id="displayTheme" onchange="applyGridTheme()">
+                <option value="classic">Classic Squares</option>
+                <option value="bubble">Bubble Circles</option>
+                <option value="hollow">Hollow Grid</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="highlightColor">Highlight Color:</label>
+            <input type="color" id="highlightColor" value="#ffcc00" oninput="applyColor()">
+        </div>
+
+        <div class="control-group">
+            <label for="wordCategory">Choose Category:</label>
+            <select id="wordCategory" onchange="handleCategoryChange(); setupGeneration()">
+                <option value="custom" selected>Custom Words</option>
+                <option value="animals">Animals 🦁</option>
+                <option value="christmas">Christmas 🎄</option>
+                <option value="thanksgiving">Thanksgiving 🦃</option>
+                <option value="halloween">Halloween 🎃</option>
+                <option value="planets">Planets 🪐</option>
+                <option value="sports">Sports 🏈</option>
+                <option value="countries">Countries 🌎</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="wordsInput">Enter Words (One per line/comma-separated):</label>
+            <textarea id="wordsInput" placeholder="apple, banana, orange, kiwi, grape" oninput="setupGeneration()">APPLE, BANANA, ORANGE, KIWI, GRAPE</textarea>
+        </div>
+
+        <div class="control-group">
+            <label>Custom Grid Size (10-30):</label>
+            <div class="size-inputs">
+                <div>
+                    <label for="gridSizeH">Horizontal (Columns)</label>
+                    <input type="number" id="gridSizeH" value="15" min="10" max="30" oninput="setupGeneration()">
+                </div>
+                <div>
+                    <label for="gridSizeV">Vertical (Rows)</label>
+                    <input type="number" id="gridSizeV" value="15" min="10" max="30" oninput="setupGeneration()">
+                </div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="difficulty">Difficulty/Directions:</label>
+            <select id="difficulty" onchange="setupGeneration()">
+                <option value="easy">Easy (H/V only, no word reversal)</option>
+                <option value="standard" selected>Standard (H/V/Diagonal, no word reversal)</option>
+                <option value="hard">Hard (All 8 directions, no word reversal)</option>
+                <option value="expert">Expert (All 8 directions, includes word reversal)</option>
+            </select>
+        </div>
+        
+        <div class="words-not-fit" id="wordsNotFitContainer">
+            <h3>Placement Warnings:</h3>
+            <div id="placementWarningContent"></div>
+        </div>
+        <div class="control-group print-options" style="border-top: none; padding-top: 0;">
+            <div class="checkbox-option">
+                <input type="checkbox" id="sortWords" onchange="renderWordBank(currentWords)">
+                <label for="sortWords">Sort Word List Alphabetically</label>
+            </div>
+            <div class="checkbox-option">
+                <input type="checkbox" id="jumbleWords" onchange="renderWordBank(currentWords)">
+                <label for="jumbleWords">Jumble Word List Letters</label>
+            </div>
+            <div class="checkbox-option">
+                <input type="checkbox" id="removeGridLines" onchange="applyGridLineSetting()">
+                <label for="removeGridLines">Remove Internal Grid Lines</label>
+            </div>
+            <div class="checkbox-option">
+                <input type="checkbox" id="repeatWords" onchange="setupGeneration()"> 
+                <label for="repeatWords">Allow **duplicate** word placement</label>
+            </div>
+            <div class="checkbox-option">
+                <input type="checkbox" id="showSolutionPreview" onchange="toggleSolutionPreview()"> 
+                <label for="showSolutionPreview">Show Solution Preview on Side</label>
+            </div>
+            
+            <div class="control-group" style="margin-top: 10px;">
+                <label for="wordListColumns">Word List Columns (1-5):</label>
+                <input type="number" id="wordListColumns" value="2" min="1" max="5" oninput="renderWordBank(currentWords)">
+            </div>
+            </div>
+
+        <button id="generateBtn" class="btn-generate" onclick="setupGeneration()">Generate New Puzzle</button> 
+
+        <div class="edurary-credit">
+            Powered by **EDURARY**
+        </div>
+
+    </div>
+
+    <div class="main-content">
+
+        <div class="classroom-header">
+            <div class="field">Name:<span></span></div>
+            <div class="field">Date:<span></span></div>
+            <div class="field">Class:<span></span></div>
+        </div>
+        <div class="puzzle-header">
+            <h1 id="puzzleTitle">Word Search Worksheet</h1>
+            <p>Find all the words hidden in the grid!</p>
+        </div>
+
+        <div class="grid-and-preview-container">
+            <div class="puzzle-container">
+                <div id="puzzleBoard" class="style-classic"></div>
+                <div class="puzzle-stats">
+                    Grid Size: <span id="gridDimensions">15 x 15</span>
+                    | Total Placements: <span id="totalPlacements">0</span>
+                    | Found: <span id="foundCount">0</span>/<span id="totalUniqueCount">0</span> (Unique)
+                </div>
+            </div>
+            <div id="solutionPreview">
+                <h3>Answer Key Preview</h3>
+            </div>
+        </div>
+        <div class="word-list-area">
+            <h2>Word Bank</h2>
+            <ul id="wordBankList"></ul>
+
+            <div class="utility-buttons">
+                <button id="answerKeyBtn" class="btn-utility" onclick="toggleAnswerKey()">Show Solution (Screen)</button> 
+                <button onclick="savePuzzleAsSVG(false)" class="btn-utility">Export Grid Only (SVG)</button>
+                <button onclick="savePuzzleAsSVG(true)" class="btn-utility">Export Answer Grid Only (SVG)</button>
+                <button onclick="exportWordBankSVG()" class="btn-utility">Export Word List Only (SVG)</button>
+
+                <div class="print-options">
+                    <div>
+                        <input type="checkbox" id="printAnswerKey">
+                        <label for="printAnswerKey" style="font-weight: normal; margin-bottom: 0;">Include Answer Key in Print</label>
+                    </div>
+                    <button onclick="printPuzzle()" class="btn-utility">Print/Download PDF</button> 
+                </div>
+            </div>
+
+            <div id="answerKeyGrid">
+            </div>
+        </div>
+        <div id="printCredit" class="edurary-credit-print">
+             -- Powered by EDURARY --
+        </div>
+
+    </div>
+</div>
+
+<script>
+// --- WORD CATEGORY DATA ---
+const WORD_BANK = {
+    custom: { words: "", defaultTitle: "Custom Word Search" },
+    animals: { words: "LION,TIGER,BEAR,WOLF,EAGLE,SHARK,DOLPHIN,GIRAFFE,ELEPHANT,MONKEY,RABBIT,FOX,ZEBRA,PANDA,KOALA,SNAKE,FROG,COW,PIG,SHEEP,GOAT,HORSE,DUCK,CAT,DOG", defaultTitle: "Animal Kingdom Puzzle" },
+    christmas: { words: "SANTA,REINDEER,SNOWMAN,GIFT,SLEIGH,BELLS,CANDY,MERRY,CAROL,WREATH,LIGHTS,ORNAMENT,CHIMNEY,STOCKING,ELF,GINGERBREAD,HOLLY,FROSTY,NATIVITY,DECEMBER,JOY", defaultTitle: "Christmas Holiday Fun" },
+    thanksgiving: { words: "TURKEY,GRAVY,PILGRIM,FEAST,HARVEST,PUMPKIN,BLESSING,FAMILY,AUTUMN,CORN,MAIZE,MAYFLOWER,COLONY,POTATOES,PIE,THANKFUL,CRANBERRY,FRIENDS", defaultTitle: "Thanksgiving Day Puzzle" },
+    halloween: { words: "GHOST,PUMPKIN,WITCH,SPIDER,CANDY,SPOOKY,HAUNTED,COSTUME,BAT,SCARED,VAMPIRE,MUMMY,ZOMBIE,BOO,CEMETERY,MOON,BLACKCAT,COBWEB", defaultTitle: "Halloween Spooktacular" },
+    planets: { words: "MERCURY,VENUS,EARTH,MARS,JUPITER,SATURN,URANUS,NEPTUNE,ASTEROID,COMET,UNIVERSE,GALAXY,ORBIT,SUN,MOON,STARS", defaultTitle: "Planets of the Solar System" },
+    sports: { words: "FOOTBALL,BASKETBALL,SOCCER,TENNIS,GOLF,HOCKEY,VOLLEYBALL,BASEBALL,RUGBY,SWIMMING,RUNNING,CYCLING,BOXING,WRESTLING,SKIING,FENCING,JUMPING", defaultTitle: "Sports Puzzle" },
+    countries: { words: "CANADA,MEXICO,BRAZIL,JAPAN,INDIA,GERMANY,FRANCE,CHINA,EGYPT,RUSSIA,CHILE,ITALY,SPAIN,AUSTRALIA,KOREA,VIETNAM,KENYA,PERU,GREECE", defaultTitle: "World Countries Puzzle" }
+};
+
+// --- GLOBAL VARIABLES ---
+let GRID_SIZE_H = 15; // Horizontal (Columns)
+let GRID_SIZE_V = 15; // Vertical (Rows)
+let ATTEMPTS_LIMIT = 500;
+let grid = [];
+let wordPositions = []; // Stores placed words and their coordinates (including duplicates)
+let isMouseDown = false;
+let dragStartCell = null;
+let dragEndCell = null;
+let currentWords = []; // Unique words for the Word Bank display
+let placedWords = []; // Array of { word: '...', instance: 1, isFound: false } for tracking and statistics
+let wordsTooLong = []; // Words that exceed max grid dimension
+let wordsFailedPlacement = []; // NEW: Words that were valid length-wise but could not be placed
+const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+// --- HELPER FUNCTIONS ---
+
+// Function to shuffle the letters of a word
+function jumbleWord(word) {
+    let a = word.split("");
+    let n = a.length;
+
+    for(let i = n - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        let tmp = a[i];
+        a[i] = a[j];
+        a[j] = tmp;
+    }
+    return a.join("");
+}
+
+// Function to get the row and column coordinates from a table cell
+function getCellCoords(cell) {
+    if (!cell || !cell.dataset.r || !cell.dataset.c) return null;
+    return [parseInt(cell.dataset.r), parseInt(cell.dataset.c)];
+}
+
+// Function to calculate the path of cells between two points
+function getPath(start, end) {
+    const [r1, c1] = start;
+    const [r2, c2] = end;
+
+    const dr = r2 - r1;
+    const dc = c2 - c1;
+
+    // Determine direction for rows and columns
+    const dirR = dr === 0 ? 0 : (dr > 0 ? 1 : -1);
+    const dirC = dc === 0 ? 0 : (dc > 0 ? 1 : -1);
+
+    // Check if it's a straight line (horizontal, vertical, or 45-degree diagonal)
+    if (Math.abs(dr) !== 0 && Math.abs(dc) !== 0 && Math.abs(dr) !== Math.abs(dc)) {
+        return []; // Not a straight line
+    }
+    if (dr === 0 && dc === 0) {
+        return [[r1, c1]]; // Single cell
+    }
+
+    const pathLength = Math.max(Math.abs(dr), Math.abs(dc));
+    const path = [];
+
+    for (let i = 0; i <= pathLength; i++) {
+        const r = r1 + i * dirR;
+        const c = c1 + i * dirC;
+        path.push([r, c]);
+    }
+    return path;
+}
+
+// Function to highlight a path of cells
+function highlightCells(path) {
+    document.querySelectorAll('#puzzleBoard td').forEach(cell => {
+        if (!cell.classList.contains('found-word')) {
+            cell.classList.remove('highlight');
+        }
+    });
+
+    path.forEach(([r, c]) => {
+        const cell = document.querySelector(`#puzzleBoard td[data-r="${r}"][data-c="${c}"]`);
+        if (cell && !cell.classList.contains('found-word')) {
+            cell.classList.add('highlight');
+        }
+    });
+}
+
+// Function to check if the selected path matches a word
+function checkWord(path) {
+    if (path.length < 2) return;
+
+    // 1. Extract the word from the selected path
+    let selectedWord = "";
+    path.forEach(([r, c]) => {
+        const cell = document.querySelector(`#puzzleBoard td[data-r="${r}"][data-c="${c}"]`);
+        if (cell) {
+            selectedWord += cell.textContent.trim();
+        }
+    });
+
+    if (!selectedWord) return;
+
+    // 2. Check the selected word (forward or reversed) against placed words
+    const reversedSelectedWord = selectedWord.split('').reverse().join('');
+    
+    // Use a unique word list based on the word bank (currentWords) for checking
+    const uniqueWordList = new Set(currentWords); 
+
+    let matchedWord = null;
+    if (uniqueWordList.has(selectedWord)) {
+        matchedWord = selectedWord;
+    } else if (uniqueWordList.has(reversedSelectedWord)) {
+        matchedWord = reversedSelectedWord;
+    }
+
+    if (matchedWord) {
+        // Find ALL instances of this word that are NOT already found
+        const placementToMark = wordPositions.find(p => 
+            p.word === matchedWord && 
+            !p.isFound
+        );
+
+        if (placementToMark) {
+            // 3. Mark the word instance as found
+            placementToMark.isFound = true;
+            
+            // 4. Highlight the cells
+            placementToMark.coords.forEach(([r, c]) => {
+                const cell = document.querySelector(`#puzzleBoard td[data-r="${r}"][data-c="${c}"]`);
+                if (cell) {
+                    cell.classList.remove('highlight');
+                    cell.classList.add('found-word');
+                }
+            });
+
+            // 5. Update the Word Bank list
+            renderWordBank(currentWords);
+            
+            // 6. Update Stats
+            updateStats(placedWords.length, currentWords.length);
+        }
+    }
+
+    // 7. Clear temporary highlighting regardless of outcome
+    document.querySelectorAll('#puzzleBoard td').forEach(cell => {
+        if (!cell.classList.contains('found-word')) {
+            cell.classList.remove('highlight');
+        }
+    });
+
+    // 8. If all words are found, notify the user (using console or a simple message, not alert)
+    const totalUniquePlaced = Array.from(new Set(placedWords.map(p => p.word))).length;
+    const totalFound = placedWords.filter(p => p.isFound).length;
+    if (totalFound === totalUniquePlaced) {
+        // You could add a celebratory UI element here instead of a console log.
+        console.log("Congratulations! You found all the words!");
+    }
+}
+
+// --- DRAG INTERACTION HANDLERS ---
+
+function handleMouseDown(e) {
+    if (e.target.tagName === 'TD') {
+        isMouseDown = true;
+        dragStartCell = e.target;
+        highlightCells(getPath(getCellCoords(dragStartCell), getCellCoords(dragStartCell)));
+    }
+}
+
+function handleMouseMove(e) {
+    if (!isMouseDown) return;
+
+    const targetCell = e.target.tagName === 'TD' ? e.target : null;
+
+    if (targetCell) {
+        dragEndCell = targetCell;
+        const startCoords = getCellCoords(dragStartCell);
+        const endCoords = getCellCoords(dragEndCell);
+
+        const path = getPath(startCoords, endCoords);
+        highlightCells(path);
+    }
+}
+
+function handleMouseUp() {
+    if (isMouseDown && dragStartCell && dragEndCell) {
+        const startCoords = getCellCoords(dragStartCell);
+        const endCoords = getCellCoords(dragEndCell);
+
+        const path = getPath(startCoords, endCoords);
+        checkWord(path);
+    }
+
+    isMouseDown = false;
+    dragStartCell = null;
+    dragEndCell = null;
+}
+
+function enableGameMode() {
+    const board = document.getElementById('puzzleBoard');
+    // Remove existing listeners to prevent duplication
+    board.removeEventListener('mousedown', handleMouseDown);
+    board.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+    
+    // Add new listeners
+    board.addEventListener('mousedown', handleMouseDown);
+    board.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    // Reset all cells visually
+    document.querySelectorAll('#puzzleBoard td').forEach(cell => {
+        cell.classList.remove('highlight', 'found-word');
+    });
+
+    // Re-apply 'found-word' class based on the state of wordPositions
+    wordPositions.forEach(placement => {
+        if (placement.isFound) {
+            placement.coords.forEach(([r, c]) => {
+                const cell = document.querySelector(`#puzzleBoard td[data-r="${r}"][data-c="${c}"]`);
+                if (cell) {
+                    cell.classList.add('found-word');
+                }
+            });
+        }
+    });
+}
+
+
+// --- GENERATION AND SETUP ---
+
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        setupGeneration();
+    } catch (e) {
+        console.error("Initial puzzle generation failed:", e);
+        document.getElementById("puzzleBoard").innerHTML = "<p style='padding: 20px;'>Error loading puzzle. Check console for details.</p>";
+    }
+});
+
+function getSettings() {
+    let sizeH = parseInt(document.getElementById("gridSizeH").value);
+    let sizeV = parseInt(document.getElementById("gridSizeV").value);
+
+    GRID_SIZE_H = Math.max(10, Math.min(30, sizeH || 15));
+    GRID_SIZE_V = Math.max(10, Math.min(30, sizeV || 15));
+
+    document.getElementById("gridSizeH").value = GRID_SIZE_H;
+    document.getElementById("gridSizeV").value = GRID_SIZE_V;
+
+    ATTEMPTS_LIMIT = 500; 
+}
+
+function selectWords() {
+    const category = document.getElementById("wordCategory").value;
+    const repeatWordsAllowed = document.getElementById("repeatWords").checked;
+    const maxDimension = Math.max(GRID_SIZE_H, GRID_SIZE_V);
+    
+    let wordsToPlaceOnGrid = [];
+    let rawWordsArray = [];
+    wordsTooLong = []; // Reset list
+
+    if (category === "custom") {
+        const rawInput = document.getElementById("wordsInput").value;
+        
+        rawWordsArray = rawInput
+            .split(/[\s,]+/)
+            .map(w => w.trim().toUpperCase().replace(/[^A-Z]/g, ''))
+            .filter(w => w.length > 1);
+        
+    } else {
+        const wordData = WORD_BANK[category];
+        const allWords = wordData.words.split(',').map(w => w.trim().toUpperCase());
+        const maxPossibleWords = Math.floor((GRID_SIZE_H + GRID_SIZE_V) / 4);
+        const effectiveWordCount = Math.max(6, Math.min(25, maxPossibleWords));
+        
+        // Shuffle the array and take the top N words
+        // Simple Fisher-Yates shuffle implementation
+        let shuffledWords = [...allWords];
+        for (let i = shuffledWords.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledWords[i], shuffledWords[j]] = [shuffledWords[j], shuffledWords[i]];
+        }
+        rawWordsArray = shuffledWords.slice(0, effectiveWordCount);
+        document.getElementById("wordsInput").value = rawWordsArray.join('\n'); 
+    }
+    
+    // Filter words based on grid size
+    const validWords = rawWordsArray.filter(w => w.length <= maxDimension);
+    wordsTooLong = Array.from(new Set(rawWordsArray.filter(w => w.length > maxDimension)));
+    
+    // 1. Determine the list for placement
+    if (repeatWordsAllowed) {
+        wordsToPlaceOnGrid = validWords;
+    } else {
+        wordsToPlaceOnGrid = Array.from(new Set(validWords));
+    }
+    
+    // 2. Determine the list for the Word Bank (MUST be unique valid words)
+    currentWords = Array.from(new Set(validWords.filter(w => w.length > 0))).slice(0, 50);
+
+    return wordsToPlaceOnGrid;
+}
+
+
+function setupGeneration() {
+    getSettings();
+
+    const wordsToPlace = selectWords();
+
+    applyVisualTheme();
+    applyColor();
+    applyGridTheme();
+    applyGridLineSetting();
+
+    const category = document.getElementById("wordCategory").value;
+    const customTitleInput = document.getElementById("customTitle").value.trim();
+    const categoryTitle = WORD_BANK[category] ? WORD_BANK[category].defaultTitle : "Word Search Worksheet";
+    document.getElementById("puzzleTitle").textContent = customTitleInput || categoryTitle;
+
+    // Grid regeneration logic only runs if there are valid words
+    if (wordsToPlace.length > 0) {
+        grid = Array(GRID_SIZE_V).fill().map(() => Array(GRID_SIZE_H).fill(""));
+        wordPositions = [];
+        placedWords = [];
+        
+        generateGrid(wordsToPlace); 
+        renderGrid();
+        enableGameMode();
+    } else {
+        document.getElementById("puzzleBoard").innerHTML = "<table style='margin: auto; margin-top: 10px;'><tr><td>N</td><td>O</td></tr><tr><td>W</td><td>O</td></tr></table>";
+        document.getElementById("wordBankList").innerHTML = "<li>No valid words to generate or fit.</li>";
+    }
+
+    // These functions run regardless of whether generation succeeded
+    renderWordBank(currentWords); 
+    renderAnswerKey(); 
+    toggleSolutionPreview(); // Update preview visibility/content
+    
+    updateStats(placedWords.length, currentWords.length);
+    renderPlacementWarningsSidebar(); // NEW: Render warnings in sidebar
+}
+
+// FUNCTION: Render placement warnings in the sidebar
+function renderPlacementWarningsSidebar() {
+    const container = document.getElementById("wordsNotFitContainer");
+    const contentDiv = document.getElementById("placementWarningContent");
+    contentDiv.innerHTML = "";
+    container.style.display = 'none';
+
+    const wordsNotPlacedDueToLength = wordsTooLong;
+    const wordsNotPlacedDueToFit = wordsFailedPlacement;
+    
+    if (wordsNotPlacedDueToLength.length === 0 && wordsNotPlacedDueToFit.length === 0) {
+        return;
+    }
+
+    let html = '';
+
+    if (wordsNotPlacedDueToLength.length > 0) {
+        html += `<h4>Words Too Long (Max: ${Math.max(GRID_SIZE_H, GRID_SIZE_V)} letters):</h4>`;
+        html += `<ul class="unplaced-list-sidebar">`;
+        wordsNotPlacedDueToLength.forEach(w => html += `<li>${w} (${w.length} letters)</li>`);
+        html += `</ul>`;
+    }
+
+    if (wordsNotPlacedDueToFit.length > 0) {
+        // Count duplicate failed placements for clarity
+        let failureCounts = {};
+        wordsNotPlacedDueToFit.forEach(w => failureCounts[w] = (failureCounts[w] || 0) + 1);
+        const uniqueFitFailures = Object.keys(failureCounts);
+        
+        html += `<h4>Words Failed to Fit:</h4>`;
+        html += `<ul class="unplaced-list-sidebar">`;
+        uniqueFitFailures.forEach(w => {
+             const count = failureCounts[w];
+             const countText = count > 1 ? ` (Failed ${count} placements)` : '';
+             html += `<li>${w}${countText}</li>`;
+        });
+        html += `</ul>`;
+    }
+
+    contentDiv.innerHTML = html;
+    container.style.display = 'block';
+}
+
+function updateStats(totalPlacements, totalUniqueCount) {
+    document.getElementById("gridDimensions").textContent = `${GRID_SIZE_V} x ${GRID_SIZE_H}`;
+    document.getElementById("totalPlacements").textContent = totalPlacements;
+    document.getElementById("totalUniqueCount").textContent = totalUniqueCount;
+    const uniquePlacedWords = Array.from(new Set(placedWords.map(p => p.word)));
+    const foundCount = placedWords.filter(p => p.isFound).length;
+    
+    // Only count unique words as 'found' for the stat display
+    const uniqueFoundCount = uniquePlacedWords.filter(w => placedWords.some(p => p.word === w && p.isFound)).length;
+
+    document.getElementById("foundCount").textContent = uniqueFoundCount; 
+    document.getElementById("totalUniqueCount").textContent = uniquePlacedWords.length;
+}
+
+function applyVisualTheme() {
+    const theme = document.getElementById("visualTheme").value;
+    document.body.className = `vtheme-${theme}`;
+}
+
+function applyColor() {
+    const color = document.getElementById("highlightColor").value;
+    document.body.style.setProperty('--highlight-color', color);
+}
+
+function applyGridTheme() {
+    const theme = document.getElementById("displayTheme").value;
+    const board = document.getElementById("puzzleBoard");
+    board.className = `style-${theme}`;
+    applyGridLineSetting();
+}
+
+function applyGridLineSetting() {
+    const board = document.getElementById("puzzleBoard");
+    const removeLines = document.getElementById("removeGridLines").checked;
+    if (removeLines) {
+        board.classList.add("no-grid-lines");
+        document.body.style.setProperty('--print-grid-border', 'none');
+    } else {
+        board.classList.remove("no-grid-lines");
+        document.body.style.setProperty('--print-grid-border', '1px solid #000');
+    }
+}
+
+function generateGrid(words) {
+    const difficultyLevel = document.getElementById("difficulty").value;
+    
+    const directionsMap = {
+        easy: [[0, 1], [1, 0]], 
+        standard: [[0, 1], [1, 0], [1, 1], [1, -1]], 
+        hard: [[0, 1], [1, 0], [1, 1], [1, -1], [-1, 1], [-1, 0], [0, -1], [-1, -1]], 
+        expert: [[0, 1], [1, 0], [1, 1], [1, -1], [-1, 1], [-1, 0], [0, -1], [-1, -1]]
+    };
+    
+    let directions = directionsMap[difficultyLevel] || directionsMap.standard;
+
+    // Sort words by length descending to place longer words first
+    let wordsToPlace = [...words].sort((a, b) => b.length - a.length);
+    
+    wordPositions = [];
+    placedWords = []; 
+    wordsFailedPlacement = [];
+    
+    // 1. Attempt to place words
+    wordsToPlace.forEach(word => {
+        let actualWord = word;
+        const allowReversal = (difficultyLevel === 'expert');
+        let attempts = 0;
+        let placedSuccessfully = false;
+
+        // Try to place the word (or its reverse) up to the limit
+        while (attempts < ATTEMPTS_LIMIT && !placedSuccessfully) {
+            attempts++;
+            
+            // Randomly choose a starting position
+            const startR = Math.floor(Math.random() * GRID_SIZE_V);
+            const startC = Math.floor(Math.random() * GRID_SIZE_H);
+            
+            // Randomly choose a direction
+            const [dr, dc] = directions[Math.floor(Math.random() * directions.length)];
+            
+            // Check for reversal
+            let isReversed = false;
+            let wordToPlace = actualWord;
+            if (allowReversal && Math.random() < 0.5) {
+                wordToPlace = actualWord.split('').reverse().join('');
+                isReversed = true;
+            }
+
+            const wordLength = wordToPlace.length;
+            const endR = startR + (wordLength - 1) * dr;
+            const endC = startC + (wordLength - 1) * dc;
+
+            // Check boundaries
+            if (endR >= 0 && endR < GRID_SIZE_V && endC >= 0 && endC < GRID_SIZE_H) {
+                let canPlace = true;
+                let coords = [];
+
+                // Check for conflicts
+                for (let i = 0; i < wordLength; i++) {
+                    const r = startR + i * dr;
+                    const c = startC + i * dc;
+                    const char = wordToPlace[i];
+                    
+                    if (grid[r][c] !== "" && grid[r][c] !== char) {
+                        canPlace = false;
+                        break;
+                    }
+                    coords.push([r, c]);
+                }
+
+                if (canPlace) {
+                    // Place the word
+                    for (let i = 0; i < wordLength; i++) {
+                        const [r, c] = coords[i];
+                        grid[r][c] = wordToPlace[i];
+                    }
+
+                    // Record the placement (always recording the non-reversed original word)
+                    wordPositions.push({
+                        word: actualWord,
+                        coords: coords,
+                        instance: (placedWords.filter(p => p.word === actualWord).length + 1),
+                        direction: `${dr},${dc}`, // For debugging/stats if needed
+                        isFound: false, // Initial state for game mode
+                        isReversed: isReversed
+                    });
+
+                    placedWords.push({ word: actualWord, isFound: false });
+                    placedSuccessfully = true;
+                    break; 
+                }
+            }
+        }
+        
+        if (!placedSuccessfully) {
+            wordsFailedPlacement.push(actualWord);
+        }
+    });
+
+
+    // 2. Fill empty cells with random letters
+    for (let r = 0; r < GRID_SIZE_V; r++) {
+        for (let c = 0; c < GRID_SIZE_H; c++) {
+            if (grid[r][c] === "") {
+                const randomIndex = Math.floor(Math.random() * letters.length);
+                grid[r][c] = letters[randomIndex];
+            }
+        }
+    }
+}
+
+function renderGrid() {
+    const boardElement = document.getElementById("puzzleBoard");
+    let html = '<table>';
+
+    for (let r = 0; r < GRID_SIZE_V; r++) {
+        html += '<tr>';
+        for (let c = 0; c < GRID_SIZE_H; c++) {
+            html += `<td data-r="${r}" data-c="${c}">${grid[r][c]}</td>`;
+        }
+        html += '</tr>';
+    }
+
+    html += '</table>';
+    boardElement.innerHTML = html;
+}
+
+function handleCategoryChange() {
+    const category = document.getElementById("wordCategory").value;
+    if (category !== "custom") {
+        const wordData = WORD_BANK[category];
+        // Clear the wordsInput area so selectWords() generates a new list
+        document.getElementById("wordsInput").value = "";
+    }
+    // setupGeneration will be called by the onchange event
+}
+
+function renderWordBank(words) {
+    const listElement = document.getElementById("wordBankList");
+    const doSort = document.getElementById("sortWords").checked;
+    const doJumble = document.getElementById("jumbleWords").checked;
+    const columnCount = Math.max(1, Math.min(5, parseInt(document.getElementById("wordListColumns").value) || 2));
+    
+    document.getElementById("wordListColumns").value = columnCount;
+    listElement.style.setProperty('column-count', columnCount);
+    document.body.style.setProperty('--print-col-count', columnCount); // Set print variable
+
+    let displayWords = [...words];
+
+    if (doSort) {
+        displayWords.sort();
+    }
+
+    let html = '';
+    const uniquePlacedWords = Array.from(new Set(placedWords.map(p => p.word)));
+
+    displayWords.forEach(word => {
+        let display = word;
+        if (doJumble) {
+            display = jumbleWord(word);
+        }
+        
+        // A word is found if at least one instance of it has been marked as found
+        const isFound = wordPositions.some(p => p.word === word && p.isFound);
+        const isPlaced = uniquePlacedWords.includes(word);
+        
+        let classList = isFound ? 'found' : '';
+        if (!isPlaced) {
+             // Gray out words that were entered but couldn't be placed (not in placedWords list)
+             classList += ' text-gray-400';
+        }
+
+        html += `<li class="${classList}">${display}</li>`;
+    });
+
+    listElement.innerHTML = html;
+}
+
+
+function renderAnswerKey() {
+    const gridElement = document.getElementById("answerKeyGrid");
+    const previewElement = document.getElementById("solutionPreview");
+
+    // Full Screen Answer Key
+    let fullHtml = '<table>';
+    for (let r = 0; r < GRID_SIZE_V; r++) {
+        fullHtml += '<tr>';
+        for (let c = 0; c < GRID_SIZE_H; c++) {
+            fullHtml += `<td data-r="${r}" data-c="${c}">${grid[r][c]}</td>`;
+        }
+        fullHtml += '</tr>';
+    }
+    fullHtml += '</table>';
+    gridElement.innerHTML = fullHtml;
+
+    // Small Preview Answer Key
+    let previewHtml = '<h3>Answer Key Preview</h3><table>';
+    for (let r = 0; r < GRID_SIZE_V; r++) {
+        previewHtml += '<tr>';
+        for (let c = 0; c < GRID_SIZE_H; c++) {
+            previewHtml += `<td data-r="${r}" data-c="${c}">${grid[r][c]}</td>`;
+        }
+        previewHtml += '</tr>';
+    }
+    previewHtml += '</table>';
+    previewElement.innerHTML = previewHtml;
+
+
+    // Apply highlights/overlays to both keys
+    const highlightColor = document.getElementById("highlightColor").value;
+
+    wordPositions.forEach(placement => {
+        const isPlaced = placedWords.some(p => p.word === placement.word);
+        if (!isPlaced) return; // Skip words that were not placed
+
+        placement.coords.forEach(([r, c]) => {
+            // Full Key (use circle overlay)
+            const fullCell = gridElement.querySelector(`td[data-r="${r}"][data-c="${c}"]`);
+            if (fullCell) {
+                fullCell.style.borderColor = highlightColor; // Border/Outline visual
+                fullCell.innerHTML = `<div class="outline-circle" style="background-color:${highlightColor}"></div>${grid[r][c]}`;
+            }
+
+            // Preview Key (use small dot overlay)
+            const previewCell = previewElement.querySelector(`td[data-r="${r}"][data-c="${c}"]`);
+            if (previewCell) {
+                previewCell.innerHTML = `<div class="solution-dot" style="background-color:${highlightColor}"></div>`;
+            }
+        });
+    });
+}
+
+
+function toggleSolutionPreview() {
+    const showPreview = document.getElementById("showSolutionPreview").checked;
+    const previewElement = document.getElementById("solutionPreview");
+    previewElement.style.display = showPreview ? 'block' : 'none';
+}
+
+function toggleAnswerKey() {
+    const keyElement = document.getElementById("answerKeyGrid");
+    const btn = document.getElementById("answerKeyBtn");
+    const isVisible = keyElement.style.display === 'block';
+
+    if (isVisible) {
+        keyElement.style.display = 'none';
+        btn.textContent = 'Show Solution (Screen)';
+    } else {
+        keyElement.style.display = 'block';
+        btn.textContent = 'Hide Solution (Screen)';
+    }
+}
+
+function printPuzzle() {
+    const printKey = document.getElementById("printAnswerKey").checked;
+    const keyElement = document.getElementById("answerKeyGrid");
+
+    if (printKey) {
+        keyElement.classList.add('print-include');
+    } else {
+        keyElement.classList.remove('print-include');
+    }
+
+    window.print();
+    
+    // Clean up immediately after print is initiated
+    keyElement.classList.remove('print-include');
+}
+
+
+// --- SVG EXPORT FUNCTIONS ---
+
+function downloadSVG(svgString, filename) {
+    const blob = new Blob([svgString], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function getGridSVG(includeSolution) {
+    const theme = document.getElementById("visualTheme").value;
+    const highlightColor = document.getElementById("highlightColor").value;
+    const removeLines = document.getElementById("removeGridLines").checked;
+    const cellWidth = 30;
+    const cellHeight = 30;
+    const padding = 10;
+    const boardWidth = GRID_SIZE_H * cellWidth;
+    const boardHeight = GRID_SIZE_V * cellHeight;
+    const svgWidth = boardWidth + 2 * padding;
+    const svgHeight = boardHeight + 2 * padding;
+    const appContainer = document.getElementById('appContainer');
+    const primaryColor = getComputedStyle(appContainer).getPropertyValue('--theme-primary-color').trim() || '#0070c7';
+
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" style="background-color: white; font-family: 'Lato', sans-serif;">`;
+    
+    // Outer border
+    svg += `<rect x="0" y="0" width="${svgWidth}" height="${svgHeight}" fill="none" stroke="${primaryColor}" stroke-width="3"/>`;
+    
+    // Draw cells and letters
+    for (let r = 0; r < GRID_SIZE_V; r++) {
+        for (let c = 0; c < GRID_SIZE_H; c++) {
+            const x = c * cellWidth + padding;
+            const y = r * cellHeight + padding;
+            const letter = grid[r][c];
+
+            // Cell border
+            if (!removeLines) {
+                svg += `<rect x="${x}" y="${y}" width="${cellWidth}" height="${cellHeight}" fill="white" stroke="#ddd" stroke-width="1"/>`;
+            } else {
+                svg += `<rect x="${x}" y="${y}" width="${cellWidth}" height="${cellHeight}" fill="white" stroke="none"/>`;
+            }
+
+            // Solution highlight (if enabled)
+            if (includeSolution) {
+                const isFoundCell = wordPositions.some(p => p.coords.some(([pr, pc]) => pr === r && pc === c));
+                if (isFoundCell) {
+                    // Draw a circle highlight for the solution
+                    svg += `<circle cx="${x + cellWidth / 2}" cy="${y + cellHeight / 2}" r="${cellWidth / 2 * 0.4}" fill="${highlightColor}" opacity="0.7"/>`;
+                }
+            }
+
+            // Letter
+            svg += `<text x="${x + cellWidth / 2}" y="${y + cellHeight / 2 + 5}" text-anchor="middle" font-size="15" font-weight="700" fill="#333">${letter}</text>`;
+        }
+    }
+
+    svg += '</svg>';
+    return svg;
+}
+
+
+function savePuzzleAsSVG(includeSolution) {
+    const svgString = getGridSVG(includeSolution);
+    const title = document.getElementById("customTitle").value.trim() || "Word Search";
+    const filename = `${title.replace(/\s/g, '_')}_${includeSolution ? 'Answer' : 'Grid'}.svg`;
+    downloadSVG(svgString, filename);
+}
+
+function exportWordBankSVG() {
+    const words = [...currentWords];
+    const doSort = document.getElementById("sortWords").checked;
+    const doJumble = document.getElementById("jumbleWords").checked;
+    const columnCount = Math.max(1, Math.min(5, parseInt(document.getElementById("wordListColumns").value) || 2));
+
+    if (doSort) {
+        words.sort();
+    }
+
+    const displayedWords = words.map(word => doJumble ? jumbleWord(word) : word);
+
+    const title = document.getElementById("customTitle").value.trim() || "Word Search";
+    const primaryColor = getComputedStyle(document.getElementById('appContainer')).getPropertyValue('--theme-primary-color').trim() || '#0070c7';
+
+    const wordHeight = 25;
+    const columnGap = 30;
+    const maxWordsPerCol = Math.ceil(displayedWords.length / columnCount);
+    const listHeight = maxWordsPerCol * wordHeight + 30;
+    const listWidth = columnCount * 150 + (columnCount - 1) * columnGap;
+    const svgWidth = listWidth + 40;
+    const svgHeight = listHeight + 20;
+
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" style="background-color: white; font-family: 'Lato', sans-serif;">`;
+    
+    svg += `<text x="20" y="25" font-size="20" font-weight="700" fill="${primaryColor}">Word Bank</text>`;
+    svg += `<line x1="20" y1="30" x2="${listWidth + 20}" y2="30" stroke="#ccc" stroke-width="1"/>`;
+
+    for (let i = 0; i < displayedWords.length; i++) {
+        const word = displayedWords[i];
+        const col = Math.floor(i / maxWordsPerCol);
+        const row = i % maxWordsPerCol;
+
+        const x = 20 + col * (150 + columnGap);
+        const y = 55 + row * wordHeight;
+
+        svg += `<text x="${x}" y="${y}" font-size="16" fill="#333">${word}</text>`;
+    }
+
+    svg += '</svg>';
+    const filename = `${title.replace(/\s/g, '_')}_WordList.svg`;
+    downloadSVG(svg, filename);
+}
+
+
+</script>
+</body>
+</html>
